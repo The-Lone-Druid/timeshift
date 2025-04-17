@@ -1,12 +1,14 @@
 # TimeShift: Slack Timezone Converter
 
-A Slack app that helps users convert times across different timezones directly within Slack.
+A Slack app that helps users convert times across different timezones directly within Slack. Convert any time reference in a message to your local timezone with a simple right-click.
 
 ## Features
 
 - Right-click on any message containing a time to convert it to your local timezone
 - Supports various time formats (12/24 hour, with/without timezone)
+- Recognizes timezone abbreviations from around the world (EST, PST, CET, IST, SGT, etc.)
 - Shows results in a clean modal dialog
+- No message data is stored - all conversions happen in real-time
 
 ## Setup Instructions
 
@@ -45,7 +47,8 @@ A Slack app that helps users convert times across different timezones directly w
 1. Get your Vercel deployment URL (e.g., https://timeshift.vercel.app)
 2. In your Slack app settings, go to **Interactivity & Shortcuts**
 3. Set the Request URL to `https://your-vercel-url.app/slack/events`
-4. Save the changes
+4. Add the same URL to **OAuth & Permissions** > **Redirect URLs** as `https://your-vercel-url.app/slack/oauth_redirect`
+5. Save the changes
 
 ## Testing the App
 
@@ -54,24 +57,84 @@ A Slack app that helps users convert times across different timezones directly w
 3. Select **Convert to Local Time** from the shortcuts menu
 4. A modal should appear showing the time converted to your local timezone
 
+## Supported Time Formats
+
+TimeShift recognizes a wide variety of time formats, including:
+
+### 24-hour format with timezone
+
+- `1400 CET`, `14:00 CET`, `14.00 CET`
+
+### 12-hour format with timezone
+
+- `2:00 PM EST`, `2 PM EST`, `2:00PM EST`, `2PM EST`
+
+### Mixed formats within text
+
+- "The meeting starts at 3:30 PM PST on Friday"
+- "Daily standup at 0900 IST"
+- "Let's connect at 15:45 GMT tomorrow"
+
+See [USAGE.md](USAGE.md) for a complete guide to using TimeShift.
+
+## Local Development
+
+### Setting Up Local Environment
+
+1. Clone this repository
+2. Install dependencies:
+   ```
+   npm install
+   ```
+3. Create a `.env` file with your Slack app credentials:
+   ```
+   SLACK_BOT_TOKEN=xoxb-your-bot-token
+   SLACK_SIGNING_SECRET=your-signing-secret
+   ```
+4. Start the development server:
+   ```
+   npm run dev
+   ```
+
+### Testing Locally with ngrok
+
+To test your local development server with Slack:
+
+1. Install ngrok: https://ngrok.com/download
+2. Start your app with `npm run dev`
+3. In another terminal, run:
+   ```
+   ngrok http 3000
+   ```
+4. Copy the ngrok HTTPS URL and update your Slack app's Request URL to `https://your-ngrok-url.io/slack/events`
+
+## Project Structure
+
+- `/api`: Serverless API functions for Vercel deployment
+  - `/api/slack.ts`: Main handler for Slack events
+  - `/api/health.ts`: Health check endpoint
+  - `/api/test.ts`: Test endpoint for diagnostics
+- `/src`: Source code
+  - `/src/app.ts`: Main application entry point
+  - `/src/utils`: Utility functions for time parsing and conversion
+  - `/src/slack`: Slack API interaction components
+  - `/src/types`: TypeScript type definitions
+- `/public`: Landing page and static assets
+
 ## Troubleshooting
 
 If the app isn't working:
 
 1. Check Vercel logs for errors (Vercel Dashboard → Deployments → Latest → Function Logs)
-2. Verify that your Request URL is correct and responding with a 200 status
-3. Make sure your environment variables are set correctly
-4. Confirm that your Slack app has the necessary permissions
+2. Visit the `/test` endpoint on your deployment to verify environment variables are set
+3. Verify that your Request URL is correct and responding with a 200 status
+4. Make sure your Slack app has the necessary scopes:
+   - `chat:write`
+   - `commands`
+   - `users:read`
+   - `users:read.email`
 
-## Development
-
-```bash
-# Install dependencies
-npm install
-
-# Run locally
-npm run dev
-```
+See [USAGE.md](USAGE.md) for more troubleshooting tips.
 
 ## Technology Stack
 
@@ -80,110 +143,7 @@ npm run dev
 - Slack Bolt API
 - Luxon (for time manipulation)
 - Spacetime (for timezone resolution)
-
-## Setup Instructions
-
-1. Clone this repository
-2. Install dependencies:
-   ```
-   npm install
-   ```
-3. Copy `.env.example` to `.env` and update with your Slack app credentials:
-   ```
-   cp .env.example .env
-   ```
-4. Set the following environment variables in your `.env` file:
-   ```
-   SLACK_BOT_TOKEN=xoxb-your-bot-token
-   SLACK_SIGNING_SECRET=your-signing-secret
-   SLACK_APP_TOKEN=xapp-your-app-token (for Socket Mode)
-   ```
-5. Build the TypeScript code:
-   ```
-   npm run build
-   ```
-6. Start the server:
-   ```
-   npm start
-   ```
-
-For development, you can use:
-
-```
-npm run dev
-```
-
-## Slack App Configuration
-
-1. Create a new Slack App at https://api.slack.com/apps
-2. Under "OAuth & Permissions", add the following bot token scopes:
-   - `users:read` (to get user timezone info)
-   - `chat:write` (to send messages)
-3. Install the app to your workspace
-4. Navigate to "Interactivity & Shortcuts"
-   - Enable Interactivity
-   - Add a Message Shortcut with:
-     - Name: "Convert to Local Time"
-     - Short Description: "Convert the selected time to your local timezone"
-     - Callback ID: `convert_time`
-5. For Socket Mode:
-   - Go to "Socket Mode" and enable it
-   - Generate an App-Level Token with `connections:write` scope
-   - Copy the token to your `.env` file as `SLACK_APP_TOKEN`
-6. For HTTP Mode:
-   - Disable Socket Mode
-   - Set the Request URL to your server URL (e.g., https://timeshift.yourdomain.com/slack/events)
-   - Copy the Bot User OAuth Token and Signing Secret to your `.env` file
-
-## Supported Time Formats
-
-The app can recognize and convert various time formats, including:
-
-1. 24-hour format with timezone: `1400 CET`, `14:00 CET`
-2. 12-hour format with timezone: `2:30 PM EST`, `2PM PST`
-3. Times embedded in longer messages: "Let's meet at 3:00 PM SST tomorrow"
-
-Supported timezone abbreviations include:
-
-- North American: EST, EDT, CST, CDT, MST, MDT, PST, PDT, AST
-- European: GMT, BST, CET, CEST, EET, EEST
-- Asian/Oceanian: IST, JST, SGT, SST, HKT, PHT, MYT, WIB, KST
-- And many others through the Spacetime library
-
-## Local Development with ngrok
-
-1. Install ngrok: https://ngrok.com/download
-2. Start your app with `npm run dev`
-3. In another terminal, run:
-   ```
-   ngrok http 3000
-   ```
-4. Copy the ngrok HTTPS URL and update your Slack app's Request URL
-
-## Local Development with Cloudflare Tunnel
-
-As an alternative to ngrok, you can use Cloudflare Tunnel for secure, persistent tunneling:
-
-1. Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/
-2. Start your app with `npm run dev`
-3. In another terminal, run:
-   ```
-   cloudflared tunnel --url http://localhost:3000
-   ```
-4. This creates a temporary tunnel with a public URL like `https://random-words.trycloudflare.com`
-5. Copy the Cloudflare HTTPS URL and update your Slack app's Request URL
-
-For persistent tunnels with custom domains, see the [Cloudflare Tunnel documentation](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/).
-
-## Project Structure
-
-- `/src`: Source code
-  - `/src/app.ts`: Main application entry point
-  - `/src/utils`: Utility functions for time parsing and conversion
-    - `/src/utils/timeParser.ts`: Logic for parsing and converting times
-  - `/src/slack`: Slack API interaction components
-    - `/src/slack/api.ts`: Functions for interacting with Slack's API
-  - `/src/types`: TypeScript type definitions
+- Vercel (for deployment)
 
 ## License
 
