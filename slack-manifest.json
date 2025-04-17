@@ -1,0 +1,38 @@
+{
+  "display_information": {
+    "name": "TimeShift",
+    "description": "Convert times in messages to your local timezone",
+    "background_color": "#2c2d30"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "TimeShift",
+      "always_online": false
+    },
+    "shortcuts": [
+      {
+        "name": "Convert to Local Time",
+        "type": "message",
+        "callback_id": "convert_time",
+        "description": "Convert the selected time to your local timezone"
+      }
+    ]
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "users:read",
+        "chat:write"
+      ]
+    }
+  },
+  "settings": {
+    "interactivity": {
+      "is_enabled": true,
+      "request_url": "https://timeshift.zahidshaikh.space/slack/events"
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": true,
+    "token_rotation_enabled": false
+  }
+}
