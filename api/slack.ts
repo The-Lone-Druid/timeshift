@@ -127,12 +127,65 @@ export default async function handler(req: any, res: any) {
     console.log('Received Slack request with headers:', JSON.stringify(headers, null, 2));
     console.log('Request body:', typeof body, body ? JSON.stringify(body, null, 2) : 'null');
     
+    // Direct handling for message_action payloads (shortcuts)
+    if (body && body.payload && typeof body.payload === 'string') {
+      try {
+        const payload = JSON.parse(body.payload);
+        console.log('Parsed payload:', JSON.stringify(payload, null, 2));
+        
+        if (payload.type === 'message_action' && payload.callback_id === 'convert_time') {
+          console.log('Processing convert_time message action');
+          
+          try {
+            // Get the user who triggered the shortcut
+            const userId = payload.user.id;
+            console.log('User ID:', userId);
+            
+            // Get the message text
+            const messageText = payload.message?.text || '';
+            console.log('Message text:', messageText);
+            
+            // Fetch the user's timezone from Slack API
+            const userTimezone = await getUserTimezone(app, userId);
+            console.log('User timezone:', userTimezone);
+            
+            // Convert the selected time to user's timezone
+            const conversionResult = convertTimeToUserTimezone(messageText, userTimezone);
+            console.log('Conversion result:', conversionResult);
+            
+            // Build the modal with conversion result
+            const modal = buildTimeConversionModal(conversionResult);
+            console.log('Modal view to open:', JSON.stringify(modal, null, 2));
+            
+            // Show the modal with conversion result
+            await app.client.views.open({
+              token: process.env.SLACK_BOT_TOKEN,
+              trigger_id: payload.trigger_id,
+              view: modal
+            });
+            
+            return res.status(200).json({ ok: true });
+          } catch (error) {
+            console.error('Error handling shortcut:', error);
+            return res.status(200).json({ 
+              ok: false, 
+              error: 'Failed to process shortcut',
+              details: (error as Error).message 
+            });
+          }
+        }
+      } catch (payloadError) {
+        console.error('Error parsing payload:', payloadError);
+      }
+    }
+    
     // Handle Slack URL verification challenge
     if (body && typeof body === 'object' && body.type === 'url_verification') {
       console.log('Received URL verification challenge');
       return res.status(200).json({ challenge: body.challenge });
     }
     
+    // Use the Bolt receiver as fallback
     try {
       // Process the request with the Bolt app
       await receiver.start();
