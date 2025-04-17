@@ -112,21 +112,57 @@ app.error(async (error) => {
 export default async function handler(req: any, res: any) {
   if (req.method === 'POST') {
     // Process the Slack request
-    const { body, headers } = req;
+    let { body, headers } = req;
+    
+    // Handle body parsing if needed
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        console.error('Error parsing request body as JSON:', e);
+      }
+    }
     
     // Log the request for debugging
     console.log('Received Slack request with headers:', JSON.stringify(headers, null, 2));
+    console.log('Request body:', typeof body, body ? JSON.stringify(body, null, 2) : 'null');
+    
+    // Handle Slack URL verification challenge
+    if (body && typeof body === 'object' && body.type === 'url_verification') {
+      console.log('Received URL verification challenge');
+      return res.status(200).json({ challenge: body.challenge });
+    }
     
     try {
       // Process the request with the Bolt app
       await receiver.start();
       console.log('Starting to process the Slack event');
-      const result = await receiver.toHandler()(body, {}, () => {});
-      console.log('Successfully processed Slack event');
-      return res.status(200).json(result);
+      
+      // Verify we have all required pieces
+      if (!process.env.SLACK_BOT_TOKEN || !process.env.SLACK_SIGNING_SECRET) {
+        console.error('Missing required environment variables');
+        return res.status(500).json({ 
+          error: 'Server configuration error', 
+          details: 'Missing required Slack credentials' 
+        });
+      }
+      
+      try {
+        const result = await receiver.toHandler()(body, {}, () => {});
+        console.log('Successfully processed Slack event');
+        return res.status(200).json(result || { ok: true });
+      } catch (handlerError) {
+        console.error('Handler error:', handlerError);
+        throw handlerError;
+      }
     } catch (error) {
       console.error('Error processing Slack event:', error);
-      return res.status(500).json({ error: 'Failed to process Slack event', details: (error as Error).message });
+      // Return a 200 OK to Slack even for errors to prevent retries
+      return res.status(200).json({ 
+        ok: false, 
+        error: 'Failed to process Slack event', 
+        details: (error as Error).message
+      });
     }
   } else if (req.method === 'GET') {
     // Handle GET request - can be used for health checks or OAuth redirect
