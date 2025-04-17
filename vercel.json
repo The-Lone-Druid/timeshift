@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/slack.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/health.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/slack/events",
+      "dest": "/api/slack.ts",
+      "methods": ["POST", "GET"]
+    },
+    {
+      "src": "/slack/oauth_redirect",
+      "dest": "/api/slack.ts",
+      "methods": ["GET"]
+    },
+    {
+      "src": "/health",
+      "dest": "/api/health.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/slack.ts"
+    }
+  ]
+} 

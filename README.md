@@ -1,15 +1,77 @@
-# TimeShift
+# TimeShift: Slack Timezone Converter
 
-A Slack app that allows users to convert times in messages to their local timezone by right-clicking the time and selecting "Convert to Local Time" from the context menu.
+A Slack app that helps users convert times across different timezones directly within Slack.
 
 ## Features
 
-- Convert time strings like "1400 CET" or "4:30 PM PST" to user's local timezone
-- Display converted times in a Slack modal
-- Support for various time formats and timezone abbreviations
-- Handles edge cases like times without colons and ambiguous timezone abbreviations
-- Comprehensive support for global timezones including Asian timezones (SGT, SST, HKT, etc.)
-- Extracts time references from anywhere in the message, not just exact matches
+- Right-click on any message containing a time to convert it to your local timezone
+- Supports various time formats (12/24 hour, with/without timezone)
+- Shows results in a clean modal dialog
+
+## Setup Instructions
+
+### 1. Create a Slack App
+
+1. Go to [https://api.slack.com/apps](https://api.slack.com/apps) and click **Create New App**
+2. Choose **From an app manifest** and select your workspace
+3. Copy the contents of `slack-manifest.json` in this repo and paste it into the manifest editor
+4. Click **Create**
+
+### 2. Install the App to Your Workspace
+
+1. After creating the app, click **Install to Workspace**
+2. Review the permissions and click **Allow**
+
+### 3. Set Up Environment Variables
+
+1. From your Slack app page, go to **Basic Information**
+2. Copy the **Signing Secret** under **App Credentials**
+3. Go to **OAuth & Permissions** and copy your **Bot User OAuth Token**
+4. Create a `.env` file with these values:
+   ```
+   SLACK_BOT_TOKEN=xoxb-your-token
+   SLACK_SIGNING_SECRET=your-signing-secret
+   ```
+
+### 4. Deploy to Vercel
+
+1. Push your code to GitHub
+2. Import the repository to Vercel
+3. Set the environment variables (SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET)
+4. Deploy your app
+
+### 5. Update Request URL
+
+1. Get your Vercel deployment URL (e.g., https://timeshift.vercel.app)
+2. In your Slack app settings, go to **Interactivity & Shortcuts**
+3. Set the Request URL to `https://your-vercel-url.app/slack/events`
+4. Save the changes
+
+## Testing the App
+
+1. In your Slack workspace, send a message like "Let's meet at 2:30 PM EST tomorrow"
+2. Right-click on the message
+3. Select **Convert to Local Time** from the shortcuts menu
+4. A modal should appear showing the time converted to your local timezone
+
+## Troubleshooting
+
+If the app isn't working:
+
+1. Check Vercel logs for errors (Vercel Dashboard → Deployments → Latest → Function Logs)
+2. Verify that your Request URL is correct and responding with a 200 status
+3. Make sure your environment variables are set correctly
+4. Confirm that your Slack app has the necessary permissions
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run locally
+npm run dev
+```
 
 ## Technology Stack
 
@@ -82,6 +144,7 @@ The app can recognize and convert various time formats, including:
 3. Times embedded in longer messages: "Let's meet at 3:00 PM SST tomorrow"
 
 Supported timezone abbreviations include:
+
 - North American: EST, EDT, CST, CDT, MST, MDT, PST, PDT, AST
 - European: GMT, BST, CET, CEST, EET, EEST
 - Asian/Oceanian: IST, JST, SGT, SST, HKT, PHT, MYT, WIB, KST

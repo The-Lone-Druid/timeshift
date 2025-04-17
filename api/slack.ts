@@ -1,38 +1,21 @@
-import { App, BlockAction, LogLevel } from '@slack/bolt';
+import { App, AwsLambdaReceiver } from '@slack/bolt';
 import dotenv from 'dotenv';
-import { getUserTimezone, convertTimeToUserTimezone, buildTimeConversionModal } from './slack/api';
+import { getUserTimezone, convertTimeToUserTimezone, buildTimeConversionModal } from '../src/slack/api';
 
 // Load environment variables
 dotenv.config();
 
-// Initialize the Slack app
+// Initialize the receiver
+const receiver = new AwsLambdaReceiver({
+  signingSecret: process.env.SLACK_SIGNING_SECRET as string,
+});
+
+// Initialize the app
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
-  // Using HTTP mode instead of Socket Mode
-  socketMode: false,
-  // Define a port for the HTTP server
-  port: process.env.PORT ? parseInt(process.env.PORT, 10) : 3000,
-  // Set routes for handling requests
-  customRoutes: [
-    {
-      path: '/slack/events',
-      method: ['POST'],
-      handler: (req, res) => {
-        // This is handled by Bolt internally
-        res.writeHead(200);
-        res.end();
-      },
-    }
-  ],
-  // Log all requests
-  logLevel: LogLevel.DEBUG
-});
-
-// Log all incoming requests
-app.use(async ({ logger, body, next }) => {
-  console.log('Received request with body:', JSON.stringify(body, null, 2));
-  await next();
+  receiver,
+  processBeforeResponse: true
 });
 
 // Interface for the message action payload
@@ -120,27 +103,41 @@ app.shortcut('convert_time', async ({ ack, shortcut, client, logger }) => {
   }
 });
 
-// Also listen for message action at the app level (backup)
-app.action('convert_time', async ({ ack, body, client, logger }) => {
-  console.log('Received convert_time action (deprecated)');
-  await ack();
-  console.log('Acknowledged action');
-  console.log('Action payload:', JSON.stringify(body, null, 2));
-});
-
 // Error handler
 app.error(async (error) => {
   console.error('Global error handler:', error);
 });
 
-// Start the app
-(async () => {
-  const port = process.env.PORT || 3000;
-  
-  await app.start(port);
-  console.log(`⚡️ TimeShift app is running on HTTP mode, port ${port}!`);
-  console.log(`Bot Token: ${process.env.SLACK_BOT_TOKEN ? 'Set' : 'Not Set'}`);
-  console.log(`Signing Secret: ${process.env.SLACK_SIGNING_SECRET ? 'Set' : 'Not Set'}`);
-})();
-
-export default app; 
+// Handler for serverless function
+export default async function handler(req: any, res: any) {
+  if (req.method === 'POST') {
+    // Process the Slack request
+    const { body, headers } = req;
+    
+    // Log the request for debugging
+    console.log('Received Slack request with headers:', JSON.stringify(headers, null, 2));
+    
+    try {
+      // Process the request with the Bolt app
+      await receiver.start();
+      console.log('Starting to process the Slack event');
+      const result = await receiver.toHandler()(body, {}, () => {});
+      console.log('Successfully processed Slack event');
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('Error processing Slack event:', error);
+      return res.status(500).json({ error: 'Failed to process Slack event', details: (error as Error).message });
+    }
+  } else if (req.method === 'GET') {
+    // Handle GET request - can be used for health checks or OAuth redirect
+    if (req.url?.includes('oauth')) {
+      // This would handle OAuth redirects if needed
+      return res.status(200).json({ status: 'ok', message: 'OAuth flow not implemented yet' });
+    }
+    // Basic health check
+    return res.status(200).json({ status: 'ok', message: 'TimeShift API is running', timestamp: new Date().toISOString() });
+  } else {
+    // Handle unsupported methods
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+} 
