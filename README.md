@@ -96,17 +96,17 @@ See [USAGE.md](USAGE.md) for a complete guide to using TimeShift.
    npm run dev
    ```
 
-### Testing Locally with ngrok
+### Testing Locally with cloudflared
 
 To test your local development server with Slack:
 
-1. Install ngrok: https://ngrok.com/download
+1. Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/
 2. Start your app with `npm run dev`
 3. In another terminal, run:
    ```
-   ngrok http 3000
+   cloudflared tunnel --url http://localhost:3000
    ```
-4. Copy the ngrok HTTPS URL and update your Slack app's Request URL to `https://your-ngrok-url.io/slack/events`
+4. Copy the cloudflared HTTPS URL and update your Slack app's Request URL to `https://your-cloudflared-url/slack/events`
 
 ## Project Structure
 
