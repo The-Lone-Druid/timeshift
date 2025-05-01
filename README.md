@@ -145,6 +145,18 @@ See [USAGE.md](USAGE.md) for more troubleshooting tips.
 - Spacetime (for timezone resolution)
 - Vercel (for deployment)
 
+## Contributing
+
+We welcome contributions to TimeShift! Whether you want to fix a bug, add a feature, or improve documentation, your help is appreciated. Please check out our [Contributing Guidelines](CONTRIBUTING.md) for details on how to get started.
+
+### Ways to Contribute
+
+- Report bugs and suggest features by opening issues
+- Submit pull requests for bug fixes and new features
+- Improve documentation
+- Help with testing
+- Share your ideas and feedback
+
 ## License
 
 MIT
